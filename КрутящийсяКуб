@@ -1,0 +1,219 @@
+#include <iostream>
+#include <SOIL2.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#define GLEW_STATIC
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
+const GLchar* VertexShaderSource = "#version 330 core\n"
+"layout (location = 0) in vec3 position;\n"
+"layout (location = 1) in vec3 color;\n"
+"layout (location = 2) in vec2 CoordTexture;\n"
+"out vec3 OutColor;\n"
+"out vec2 OutTexture;\n"
+"uniform mat4 projection;\n"
+"uniform mat4 view;\n"
+"uniform mat4 model;\n"
+"void main()\n"
+"{\n"
+"gl_Position = projection * view * model * vec4(position, 1.0f);\n"
+"OutColor = color;\n"
+"OutTexture = CoordTexture;\n"
+"}\n\0";
+
+const GLchar* FragmentShaderSoure = "#version 330 core\n"
+"in vec3 OutColor;\n"
+"in vec2 OutTexture;\n"
+"out vec4 color;\n"
+"uniform sampler2D Texture1;\n"
+"uniform sampler2D Texture2;\n"
+"uniform float ValueMix;\n"
+"void main()\n"
+"{\n"
+"color = mix(texture(Texture1, OutTexture), texture(Texture2, vec2(OutTexture.x, 1.0f - OutTexture.y)) * vec4(OutColor, 1.0f), ValueMix);\n"
+"}\n\0";
+float ValueMix = 0.0f;
+float W = -3.0f;
+void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
+		glfwSetWindowShouldClose(window, -1);
+	}
+	if (key == GLFW_KEY_UP && action == GLFW_PRESS) {
+		ValueMix += 0.1f;
+	}
+	if (key == GLFW_KEY_DOWN && action == GLFW_PRESS) {
+		ValueMix -= 0.1f;
+	}
+	if (key == GLFW_KEY_W) {
+		W += 1.0f;
+	}
+	if (key == GLFW_KEY_S) {
+		W -= 1.0f;
+	}
+};
+int main()
+{
+	glfwInit();
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
+	GLFWwindow* window = glfwCreateWindow(800, 800, "1624", nullptr, nullptr);
+	if (window == nullptr) {
+		std::cout << "error 1" << std::endl;
+		glfwTerminate();
+		return -1;
+	}
+	glfwMakeContextCurrent(window);
+	glfwSetKeyCallback(window, KeyCallback);
+	glewExperimental = GL_TRUE;
+	if (glewInit() != GLEW_OK) {
+		std::cout << "error 2" << std::endl;
+		return -1;
+	}
+	int weight, hight;
+	glfwGetFramebufferSize(window, &weight, &hight);
+	glViewport(0, 0, weight, hight);
+	glEnable(GL_DEPTH_TEST);
+	GLuint vertexshader = glCreateShader(GL_VERTEX_SHADER);
+	glShaderSource(vertexshader, 1, &VertexShaderSource, NULL);
+	glCompileShader(vertexshader);
+	GLint success;
+	GLchar infolog[512];
+	glGetShaderiv(vertexshader, GL_COMPILE_STATUS, &success);
+	if (!success) {
+		glGetShaderInfoLog(vertexshader, 512, NULL, infolog);
+		std::cout << infolog << std::endl;
+	}
+	GLuint fragmentshader = glCreateShader(GL_FRAGMENT_SHADER);
+	glShaderSource(fragmentshader, 1, &FragmentShaderSoure, NULL);
+	glCompileShader(fragmentshader);
+	glGetShaderiv(fragmentshader, GL_COMPILE_STATUS, &success);
+	if (!success) {
+		glGetShaderInfoLog(fragmentshader, 512, NULL, infolog);
+		std::cout << infolog << std::endl;
+	}
+	GLuint programshader = glCreateProgram();
+	glAttachShader(programshader, vertexshader);
+	glAttachShader(programshader, fragmentshader);
+	glLinkProgram(programshader);
+	glGetProgramiv(programshader, GL_LINK_STATUS, &success);
+	if (!success) {
+		glGetProgramInfoLog(programshader, 512, NULL, infolog);
+		std::cout << infolog << std::endl;
+	}
+	glDeleteShader(vertexshader);
+	glDeleteShader(fragmentshader);
+	GLfloat vertices[] = {
+		-0.5f, -0.5f, 0.5f,		1.0f, 0.0f, 0.0f,		0.0f, 0.0f,
+		-0.5f, -0.5f, -0.5f,	1.0f, 0.0f, 0.0f,		1.0f, 0.0f,
+		-0.5f, 0.5f, 0.5f,		1.0f, 0.0f, 0.0f,		0.0f, 1.0f,
+		-0.5f, 0.5f, 0.5f,		1.0f, 0.0f, 0.0f,		0.0f, 1.0f,
+		-0.5f, 0.5f, -0.5f,		1.0f, 0.0f, 0.0f,		1.0f, 1.0f,
+		-0.5f, -0.5f, -0.5f,	1.0f, 0.0f, 0.0f,		1.0f, 0.0f,
+
+		0.5f, -0.5f, 0.5f,		1.0f, 0.0f, 0.0f,		1.0f, 0.0f,
+		0.5f, -0.5f, -0.5f,		1.0f, 0.0f, 0.0f,		0.0f, 0.0f,
+		0.5f, 0.5f, 0.5f,		1.0f, 0.0f, 0.0f,		1.0f, 1.0f,
+		0.5f, 0.5f, 0.5f,		1.0f, 0.0f, 0.0f,		1.0f, 1.0f,
+		0.5f, 0.5f, -0.5f,		1.0f, 0.0f, 0.0f,		0.0f, 1.0f,
+		0.5f, -0.5f, -0.5f,		1.0f, 0.0f, 0.0f,		0.0f, 0.0f,
+
+		-0.5f, 0.5f, 0.5f,		1.0f, 0.0f, 0.0f,		0.0f, 0.0f,
+		-0.5f, 0.5f, -0.5f,		1.0f, 0.0f, 0.0f,		0.0f, 1.0f,
+		0.5f, 0.5f, 0.5f,		1.0f, 0.0f, 0.0f,		1.0f, 0.0f,
+		0.5f, 0.5f, 0.5f,		1.0f, 0.0f, 0.0f,		1.0f, 0.0f,
+		0.5f, 0.5f, -0.5f,		1.0f, 0.0f, 0.0f,		1.0f, 1.0f,
+		-0.5f, 0.5f, -0.5f,		1.0f, 0.0f, 0.0f,		0.0f, 1.0f,
+
+		-0.5f, -0.5f, 0.5f,		1.0f, 0.0f, 0.0f,		0.0f, 0.0f,
+		-0.5f, -0.5f, -0.5f,	1.0f, 0.0f, 0.0f,		0.0f, 1.0f,
+		0.5f, -0.5f, 0.5f,		1.0f, 0.0f, 0.0f,		1.0f, 0.0f,
+		0.5f, -0.5f, 0.5,		1.0f, 0.0f, 0.0f,		1.0f, 0.0f,
+		0.5f, -0.5f, -0.5f,		1.0f, 0.0f, 0.0f,		1.0f, 1.0f,
+		-0.5f, -0.5f, -0.5f,	1.0f, 0.0f, 0.0f,		0.0f, 1.0f,
+
+		-0.5f, -0.5f, -0.5f,	1.0f, 0.0f, 0.0f,		0.0f, 0.0f,
+		-0.5f, 0.5f, -0.5f,		1.0f, 0.0f, 0.0f,		0.0f, 1.0f,
+		0.5f, -0.5f, -0.5f,		1.0f, 0.0f, 0.0f,		1.0f, 0.0f,
+		0.5f, -0.5f, -0.5f,		1.0f, 0.0f, 0.0f,		1.0f, 0.0f,
+		0.5f, 0.5f, -0.5f,		1.0f, 0.0f, 0.0f,		1.0f, 1.0f,
+		-0.5f, 0.5f, -0.5f,		1.0f, 0.0f, 0.0f,		0.0f, 1.0f,
+
+		-0.5f, -0.5f, 0.5f,		1.0f, 0.0f, 0.0f,		0.0f, 0.0f,
+		-0.5f, 0.5f, 0.5f,		1.0f, 0.0f, 0.0f,		0.0f, 1.0f,
+		0.5f, -0.5f, 0.5f,		1.0f, 0.0f, 0.0f,		1.0f, 0.0f,
+		0.5f, -0.5f, 0.5f,		1.0f, 0.0f, 0.0f,		1.0f, 0.0f,
+		0.5f, 0.5f, 0.5f,		1.0f, 0.0f, 0.0f,		1.0f, 1.0f,
+		-0.5f, 0.5f, 0.5f,		1.0f, 0.0f, 0.0f,		0.0f, 1.0f,
+	};
+	GLuint VAO, VBO;
+	glGenBuffers(1, &VBO);
+	glGenVertexArrays(1, &VAO);
+	glBindVertexArray(VAO);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)0);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(6 * sizeof(GLfloat)));
+	glEnableVertexAttribArray(2);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
+	GLuint textures[2];
+	glGenTextures(2, textures);
+	glBindTexture(GL_TEXTURE_2D, textures[0]);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	unsigned char* image1 = SOIL_load_image("container.jpg", &weight, &hight, 0, SOIL_LOAD_RGB);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, weight, hight, 0, GL_RGB, GL_UNSIGNED_BYTE, image1);
+	glGenerateMipmap(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	SOIL_free_image_data(image1);
+	glBindTexture(GL_TEXTURE_2D, textures[1]);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	unsigned char* image2 = SOIL_load_image("awesomeface.png", &weight, &hight, 0, SOIL_LOAD_RGB);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, weight, hight, 0, GL_RGB, GL_UNSIGNED_BYTE, image2);
+	glGenerateMipmap(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	SOIL_free_image_data(image2);
+	while (!glfwWindowShouldClose(window)) {
+		std::cout << W << std::endl;
+		glfwPollEvents();
+		glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, textures[0]);
+		glUniform1i(glGetUniformLocation(programshader, "Texture1"), 0);
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, textures[1]);
+		glUniform1i(glGetUniformLocation(programshader, "Texture2"), 1);
+		glUniform1f(glGetUniformLocation(programshader, "ValueMix"), ValueMix);
+		glfwGetFramebufferSize(window, &weight, &hight);
+		glm::mat4 projection;
+		glm::mat4 view;
+		glm::mat4 model;
+		projection = glm::perspective(45.0f, (float)weight / (float)hight, 0.1f, 100.0f);
+		glUniformMatrix4fv(glGetUniformLocation(programshader, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+		view = glm::translate(view, glm::vec3(0.0f, 0.0f, W));
+		glUniformMatrix4fv(glGetUniformLocation(programshader, "view"), 1, GL_FALSE, glm::value_ptr(view));
+		model = glm::rotate(model, (float)glfwGetTime() * 60.0f, glm::vec3(0.5f, 1.0f, 0.5f));
+		glUniformMatrix4fv(glGetUniformLocation(programshader, "model"), 1, GL_FALSE, glm::value_ptr(model));
+		glUseProgram(programshader);
+		glBindVertexArray(VAO);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+		glBindVertexArray(0);
+		glfwSwapBuffers(window);
+	}
+	glDeleteBuffers(1, &VBO);
+	glDeleteVertexArrays(1, &VAO);
+	glfwTerminate();
+	return 0;
+}
